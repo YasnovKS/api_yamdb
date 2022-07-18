@@ -108,13 +108,14 @@ class ImportDataBaseCommand(BaseCommand):
         """
         Display summary how many records for what models were imported so far.
         """
-        self.stdout.write(self.style.SUCCESS('=' * 60))
+        BORDER = '=' * 60
+        self.stdout.write(self.style.SUCCESS(BORDER))
         self.stdout.write(self.style.SUCCESS('ЗАПИСЕЙ ДОБАВЛЕНО\n'))
         for model_name, recs_count in summary_data.items():
             self.stdout.write(
                 self.style.SUCCESS(f'{model_name:<15}: {recs_count:>3}')
             )
-        self.stdout.write(self.style.SUCCESS('=' * 60))
+        self.stdout.write(self.style.SUCCESS(BORDER))
 
     def handle(self, *args, **options):
         """
