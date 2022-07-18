@@ -4,4 +4,10 @@ from Users.models import User
 
 
 class Command(ImportDataBaseCommand):
-    models = (Category, Genre, Title, GenreTitle, User)
+    models = (
+        Category,
+        Genre,
+        Title,
+        GenreTitle,
+        User,
+    )
