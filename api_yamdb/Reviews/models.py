@@ -1,4 +1,7 @@
+from tkinter import CASCADE
 from django.db import models
+
+from Users.models import User
 
 
 class Category(models.Model):
@@ -39,3 +42,36 @@ class GenreTitle(models.Model):
 
     def __str__(self):
         return f'{self.genre} {self.title}'
+
+
+class Review(models.Model):
+    text = models.TextField('текст отзыва')
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='reviews'
+    )
+    score = models.PositiveIntegerField('оценка')
+    pub_date = models.DateTimeField('дата', auto_now_add=True)
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.title} {self.text[:15]}'
+
+
+class Comments(models.Model):
+    text = models.TextField('комментарий')
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments'
+    )
+    pub_date = models.DateTimeField('дата', auto_now_add=True)
+    review = models.ForeignKey(
+        Review,
+        on_delete=CASCADE,
+        related_name='comments'
+    )
+
+    def __str__(self):
+        return f'{self.review} {self.text[:15]}'
