@@ -8,7 +8,10 @@ class Category(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=('slug',), name='unique_slug')
+            models.UniqueConstraint(fields=('slug',), name='category')
+        ]
+        ordering = [
+            'slug',
         ]
 
     def __str__(self):
@@ -21,7 +24,10 @@ class Genre(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=('slug',), name='unique_slug')
+            models.UniqueConstraint(fields=('slug',), name='unique_genre')
+        ]
+        ordering = [
+            'slug',
         ]
 
     def __str__(self):
@@ -39,6 +45,11 @@ class Title(models.Model):
         on_delete=models.SET_NULL,
         null=True,
     )
+
+    class Meta:
+        ordering = [
+            '-year',
+        ]
 
     def __str__(self):
         return self.name[:15]
