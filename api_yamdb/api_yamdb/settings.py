@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_yasg',
     'Users.apps.UsersConfig',
     'Reviews.apps.ReviewsConfig',
     'Api.apps.ApiConfig',
@@ -108,3 +109,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
 
 TEST_DATA_DIR = os.path.join(BASE_DIR, 'static', 'data')
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {'type': 'apiKey', 'name': 'Authorization', 'in': 'header'}
+    }
+}
