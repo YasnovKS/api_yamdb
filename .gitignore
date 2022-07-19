@@ -61,7 +61,6 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 migrations/
-*.http
 
 
 # Flask stuff:
@@ -151,3 +150,5 @@ dmypy.json
 # папки со статикой и медиа
 media/
 
+# файл запросов к api
+requests.http
