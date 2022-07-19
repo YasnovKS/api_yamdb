@@ -26,7 +26,7 @@ class TitleSerializer(serializers.ModelSerializer):
     category = CategorySerializer()
 
     class Meta:
-        model = Genre
+        model = Title
         fields = (
             'name',
             'year',

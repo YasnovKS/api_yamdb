@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_yasg',
     'users.apps.UsersConfig',
     'reviews.apps.ReviewsConfig',
     'api.apps.ApiConfig',
@@ -110,3 +111,9 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
 TEST_DATA_DIR = os.path.join(BASE_DIR, 'static', 'data')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {'type': 'apiKey', 'name': 'Authorization', 'in': 'header'}
+    }
+}
