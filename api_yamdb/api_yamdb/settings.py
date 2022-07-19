@@ -21,12 +21,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'Users.apps.UsersConfig',
-    'Reviews.apps.ReviewsConfig',
-    'Api.apps.ApiConfig',
+    'users.apps.UsersConfig',
+    'reviews.apps.ReviewsConfig',
+    'api.apps.ApiConfig',
 ]
 
-AUTH_USER_MODEL = 'Users.User'
+AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -108,3 +108,5 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static/'),)
 
 TEST_DATA_DIR = os.path.join(BASE_DIR, 'static', 'data')
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
