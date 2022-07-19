@@ -3,7 +3,7 @@ from rest_framework.routers import SimpleRouter
 
 from api.views import ReviewViewSet, CommentViewSet
 
-app_name = 'Api'
+app_name = 'api'
 
 
 router = SimpleRouter()
