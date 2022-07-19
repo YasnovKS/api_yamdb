@@ -13,7 +13,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     )
     score = serializers.IntegerField(min_value=1, max_value=10)
 
-    class Mets:
+    class Meta:
         model = Review
         fields = ['id', 'text', 'author', 'score', 'pub_date']
         validators = [
