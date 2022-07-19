@@ -1,8 +1,8 @@
 from rest_framework import viewsets
+from reviews.models import Category, Genre, Title
 
 from .mixins import ListCreateDestroyViewSet
 from .serializers import CategorySerializer, GenreSerializer, TitleSerializer
-from Reviews.models import Category, Genre, Title
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
