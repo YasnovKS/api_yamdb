@@ -1,5 +1,4 @@
-from django import views
-from rest_framework import filters, mixins, viewsets
+from rest_framework import mixins, viewsets
 from .serializers import (RegisterSerilizer)
 import uuid
 from django.core.mail import send_mail
