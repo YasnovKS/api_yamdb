@@ -202,7 +202,7 @@ class ObtainTokenSerializer(serializers.Serializer):
 
     class Meta:
         model = User
-        fields = ('username', 'confirmation_code', 'token')
+        fields = ('username', 'confirmation_code')
 
     def validate(self, data):
         user = get_object_or_404(User, username=data.get('username'))
