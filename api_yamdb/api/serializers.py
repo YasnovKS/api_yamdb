@@ -1,6 +1,7 @@
 import datetime
 
 from django.db.models import Avg
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 
@@ -178,7 +179,7 @@ class TitleSerializer(serializers.ModelSerializer):
         return instance
 
 
-class RegisterSerilizer(serializers.ModelSerializer):
+class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('email', 'username')
@@ -187,6 +188,28 @@ class RegisterSerilizer(serializers.ModelSerializer):
                 queryset=User.objects.all(), fields=('username', 'email')
             )
         ]
+
+    def validate_username(self, value):
+        if value == "me":
+            raise serializers.ValidationError("You can't use 'me'"
+                                              " as your username.")
+        return value
+
+
+class ObtainTokenSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)
+    confirmation_code = serializers.CharField(required=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'confirmation_code', 'token')
+
+    def validate(self, data):
+        user = get_object_or_404(User, username=data.get('username'))
+        if data.get('confirmation_code') != user.confirmation_code:
+            raise serializers.ValidationError('Incorrect "confirmation_code"'
+                                              ' for user.')
+        return data
 
 
 class ReviewSerializer(serializers.ModelSerializer):

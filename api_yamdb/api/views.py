@@ -1,28 +1,25 @@
 import uuid
-from rest_framework.response import Response
-from rest_framework import status
 
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, viewsets
+from rest_framework import filters, mixins, status, views, viewsets
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .mixins import ListCreateDestroyViewSet
-from .serializers import (
-    CategorySerializer,
-    CommentSerializer,
-    GenreSerializer,
-    RegisterSerilizer,
-    ReviewSerializer,
-    TitleSerializer,
-)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          GenreSerializer, ObtainTokenSerializer,
+                          RegisterSerializer, ReviewSerializer,
+                          TitleSerializer)
 from reviews.models import Category, Genre, Review, Title
+from users.models import User
 
 
 class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     confirmation_code = str(uuid.uuid4())
-    serializer_class = RegisterSerilizer
+    serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -40,6 +37,17 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
             'register@yamdb.ru',
             [serializer.data['email']],
         )
+
+
+class ObtainTokenView(views.APIView):
+    def post(self, request):
+        serializer = ObtainTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.data.get('username')
+        user = get_object_or_404(User, username=username)
+        token = RefreshToken.for_user(user).access_token
+        return Response({'token': str(token)},
+                        status=status.HTTP_200_OK)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
