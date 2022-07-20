@@ -2,18 +2,38 @@ from django.urls import include, path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 
-from .views import CategoryViewSet, GenreViewSet, TitleViewSet
+from .views import (
+    CategoryViewSet,
+    CommentViewSet,
+    GenreViewSet,
+    RegisterViewSet,
+    ReviewViewSet,
+    TitleViewSet,
+)
 
-router_v1 = DefaultRouter()
+app_name = 'api'
 
+router_v1 = SimpleRouter()
+
+router_v1.register('auth/signup', RegisterViewSet, basename='register')
 router_v1.register('categories', CategoryViewSet, basename='category')
 router_v1.register('genres', GenreViewSet, basename='genre')
 router_v1.register('titles', TitleViewSet, basename='title')
+router_v1.register(
+    r'titles/(?P<title_id>\d+)/reviews',
+    ReviewViewSet,
+    basename='reviews',
+)
+router_v1.register(
+    r'titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments',
+    CommentViewSet,
+    basename='comments',
+)
 
 urlpatterns = [
-    path('v1/', include(router_v1.urls)),
+    path('v1/', include(router_v1.urls), name='api'),
 ]
 
 schema_view = get_schema_view(

@@ -1,4 +1,6 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
 from users.models import User
 
 
@@ -71,7 +73,9 @@ class Review(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='reviews'
     )
-    score = models.PositiveIntegerField('оценка')
+    score = models.PositiveSmallIntegerField(
+        'оценка', validators=[MinValueValidator(1), MaxValueValidator(10)]
+    )
     pub_date = models.DateTimeField('дата', auto_now_add=True)
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, related_name='reviews'
@@ -80,6 +84,11 @@ class Review(models.Model):
     class Meta:
         ordering = [
             'pub_date',
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'title'], name='unique_review'
+            )
         ]
 
     def __str__(self):

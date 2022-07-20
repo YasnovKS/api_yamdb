@@ -3,7 +3,9 @@ import datetime
 from django.db.models import Avg
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from reviews.models import Category, Genre, GenreTitle, Title
+
+from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
+from users.models import User
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -174,3 +176,44 @@ class TitleSerializer(serializers.ModelSerializer):
         # saving updates to db and return updated instance
         instance.save()
         return instance
+
+
+class RegisterSerilizer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('email', 'username')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=User.objects.all(), fields=('username', 'email')
+            )
+        ]
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        default=serializers.CurrentUserDefault(),
+    )
+    score = serializers.IntegerField(min_value=1, max_value=10)
+
+    class Meta:
+        model = Review
+        fields = ['id', 'text', 'author', 'score', 'pub_date']
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Review.objects.all(), fields=['author', 'title']
+            )
+        ]
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        default=serializers.CurrentUserDefault(),
+    )
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'text', 'author', 'pub_date']
