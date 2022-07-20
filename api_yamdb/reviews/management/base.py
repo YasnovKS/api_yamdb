@@ -71,7 +71,7 @@ class ImportDataBaseCommand(BaseCommand):
         """
         try:
             records_imported_count = 0
-            with open(filename, newline='') as csvfile:
+            with open(filename, newline='', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
                 for row in reader:
                     record = self._build_db_record(model, row)
