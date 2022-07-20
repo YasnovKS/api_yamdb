@@ -8,6 +8,8 @@ ROLES = (('user', 'Пользователь'),
 
 
 class User(AbstractUser):
+    username = models.CharField(max_length=25,
+                                unique=True)
     email = models.EmailField(unique=True)
     bio = models.TextField(max_length=500,
                            blank=True,
@@ -17,4 +19,7 @@ class User(AbstractUser):
                             choices=ROLES,
                             default='user',
                             verbose_name='Роль')
+    confirmation_code = models.CharField(max_length=50,
+                                         default='')
+
     USERNAME_FIELD = 'username'

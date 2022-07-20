@@ -1,8 +1,26 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from rest_framework import mixins, viewsets
 
 from reviews.models import Title, Review
-from api.serializers import ReviewSerializer, CommentSerializer
+from api.serializers import (ReviewSerializer, CommentSerializer,
+                             RegisterSerilizer)
+from django.core.mail import send_mail
+import uuid
+
+
+class RegisterViewSet(mixins.CreateModelMixin,
+                      viewsets.GenericViewSet):
+    confirmation_code = str(uuid.uuid4())
+    serializer_class = RegisterSerilizer
+
+    def perform_create(self, serializer):
+        serializer.save(confirmation_code=self.confirmation_code)
+        send_mail(
+            'E-mail verification',
+            f'Your confirmation_code is {self.confirmation_code}',
+            'register@yamdb.ru',
+            [serializer.data['email']]
+        )
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

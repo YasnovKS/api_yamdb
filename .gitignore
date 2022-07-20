@@ -62,6 +62,7 @@ db.sqlite3
 db.sqlite3-journal
 migrations/
 
+
 # Flask stuff:
 instance/
 .webassets-cache
@@ -150,4 +151,4 @@ dmypy.json
 media/
 
 # файл запросов к api
-*.http
+requests.http

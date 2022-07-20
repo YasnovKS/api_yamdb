@@ -1,13 +1,14 @@
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
-from api.views import ReviewViewSet, CommentViewSet
+from api.views import ReviewViewSet, CommentViewSet, RegisterViewSet
 
 app_name = 'api'
 
 
 router = SimpleRouter()
 
+router.register('auth/signup', RegisterViewSet, basename='register')
 router.register(
     r'titles/(?P<title_id>\d+)/reviews',
     ReviewViewSet,
@@ -20,5 +21,5 @@ router.register(
 )
 
 urlpatterns = [
-    path('v1/', include(router.urls), name='Api'),
+    path('v1/', include(router.urls), name='api'),
 ]
