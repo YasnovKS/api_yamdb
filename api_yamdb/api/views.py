@@ -9,10 +9,15 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .mixins import ListCreateDestroyViewSet
-from .serializers import (CategorySerializer, CommentSerializer,
-                          GenreSerializer, ObtainTokenSerializer,
-                          RegisterSerializer, ReviewSerializer,
-                          TitleSerializer)
+from .serializers import (
+    CategorySerializer,
+    CommentSerializer,
+    GenreSerializer,
+    ObtainTokenSerializer,
+    RegisterSerializer,
+    ReviewSerializer,
+    TitleSerializer,
+)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
@@ -26,8 +31,9 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_200_OK,
-                        headers=headers)
+        return Response(
+            serializer.data, status=status.HTTP_200_OK, headers=headers
+        )
 
     def perform_create(self, serializer):
         serializer.save(confirmation_code=self.confirmation_code)
@@ -46,23 +52,24 @@ class ObtainTokenView(views.APIView):
         username = serializer.data.get('username')
         user = get_object_or_404(User, username=username)
         token = RefreshToken.for_user(user).access_token
-        return Response({'token': str(token)},
-                        status=status.HTTP_200_OK)
+        return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    lookup_field = 'slug'
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    search_fields = ('$name',)
     pagination_class = PageNumberPagination
 
 
 class GenreViewSet(ListCreateDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    lookup_field = 'slug'
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    search_fields = ('$name',)
     pagination_class = PageNumberPagination
 
 
