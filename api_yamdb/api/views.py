@@ -12,7 +12,8 @@ from .mixins import ListCreateDestroyViewSet
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ObtainTokenSerializer,
                           RegisterSerializer, ReviewSerializer,
-                          TitleSerializer)
+                          TitleSerializer, UserDetailSerializer,
+                          UsersListSerializer)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
@@ -48,6 +49,13 @@ class ObtainTokenView(views.APIView):
         token = RefreshToken.for_user(user).access_token
         return Response({'token': str(token)},
                         status=status.HTTP_200_OK)
+
+
+class GetOrCreateUsersViewSet(viewsets.ModelViewSet):
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return UsersListSerializer
+        return UserDetailSerializer
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):

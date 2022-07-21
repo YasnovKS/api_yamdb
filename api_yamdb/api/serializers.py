@@ -191,8 +191,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_username(self, value):
         if value == "me":
-            raise serializers.ValidationError("You can't use 'me'"
-                                              " as your username.")
+            raise serializers.ValidationError('Вы не можете использовать "me"'
+                                              ' в качестве имени пользователя.'
+                                              )
         return value
 
 
@@ -207,9 +208,25 @@ class ObtainTokenSerializer(serializers.Serializer):
     def validate(self, data):
         user = get_object_or_404(User, username=data.get('username'))
         if data.get('confirmation_code') != user.confirmation_code:
-            raise serializers.ValidationError('Incorrect "confirmation_code"'
-                                              ' for user.')
+            raise serializers.ValidationError('Введен неверный'
+                                              ' проверочный код.'
+                                              )
         return data
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'bio', 'role')
+
+
+class UsersListSerializer(serializers.ModelSerializer):
+    results = UserDetailSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ()
 
 
 class ReviewSerializer(serializers.ModelSerializer):
