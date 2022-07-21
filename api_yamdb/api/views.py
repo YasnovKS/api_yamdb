@@ -3,12 +3,20 @@ import uuid
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, status, views, viewsets
+from rest_framework import (
+    filters,
+    mixins,
+    permissions,
+    status,
+    views,
+    viewsets,
+)
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .mixins import ListCreateDestroyViewSet
+from .permissions import IsAdminOrReadOnly
 from .serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -59,6 +67,10 @@ class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     lookup_field = 'slug'
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+    )
     filter_backends = (filters.SearchFilter,)
     search_fields = ('$name',)
     pagination_class = PageNumberPagination
@@ -68,6 +80,10 @@ class GenreViewSet(ListCreateDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     lookup_field = 'slug'
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+    )
     filter_backends = (filters.SearchFilter,)
     search_fields = ('$name',)
     pagination_class = PageNumberPagination
@@ -76,6 +92,10 @@ class GenreViewSet(ListCreateDestroyViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+    )
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = (
         'category__slug',
