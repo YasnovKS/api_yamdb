@@ -52,6 +52,16 @@ class Title(models.Model):
         ordering = [
             '-year',
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=(
+                    'name',
+                    'year',
+                    'category',
+                ),
+                name='unique_title',
+            )
+        ]
 
     def __str__(self):
         return self.name[:15]
