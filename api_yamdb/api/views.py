@@ -7,19 +7,19 @@ from rest_framework import filters, mixins, status, views, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
+from .permissions import IsAdminPermission
 
 from .mixins import ListCreateDestroyViewSet
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ObtainTokenSerializer,
                           RegisterSerializer, ReviewSerializer,
-                          TitleSerializer, UserDetailSerializer,
-                          UsersListSerializer)
+                          TitleSerializer, UserListSerializer)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
 
 class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    confirmation_code = str(uuid.uuid4())
     serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
@@ -31,10 +31,11 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
                         headers=headers)
 
     def perform_create(self, serializer):
-        serializer.save(confirmation_code=self.confirmation_code)
+        confirmation_code = str(uuid.uuid4())
+        serializer.save(confirmation_code=confirmation_code)
         send_mail(
             'E-mail verification',
-            f'Your confirmation_code is {self.confirmation_code}',
+            f'Your confirmation_code is {confirmation_code}',
             'register@yamdb.ru',
             [serializer.data['email']],
         )
@@ -52,10 +53,14 @@ class ObtainTokenView(views.APIView):
 
 
 class GetOrCreateUsersViewSet(viewsets.ModelViewSet):
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return UsersListSerializer
-        return UserDetailSerializer
+    queryset = User.objects.all()
+    serializer_class = UserListSerializer
+    pagination_class = PageNumberPagination
+    permission_classes = (IsAuthenticated, IsAdminPermission)
+
+    def perform_create(self, serializer):
+        confirmation_code = str(uuid.uuid4())
+        serializer.save(confirmation_code=confirmation_code)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):

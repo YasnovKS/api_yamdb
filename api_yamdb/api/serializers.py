@@ -214,19 +214,11 @@ class ObtainTokenSerializer(serializers.Serializer):
         return data
 
 
-class UserDetailSerializer(serializers.ModelSerializer):
+class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
-
-
-class UsersListSerializer(serializers.ModelSerializer):
-    results = UserDetailSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = User
-        fields = ()
 
 
 class ReviewSerializer(serializers.ModelSerializer):

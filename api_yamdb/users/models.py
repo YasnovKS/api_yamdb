@@ -9,7 +9,8 @@ ROLES = (('user', 'Пользователь'),
 
 class User(AbstractUser):
     username = models.CharField(max_length=25,
-                                unique=True)
+                                unique=True,
+                                primary_key=True)
     email = models.EmailField(unique=True)
     bio = models.TextField(max_length=500,
                            blank=True,
