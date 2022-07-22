@@ -1,7 +1,5 @@
 from rest_framework import permissions
 
-from users.models import ROLE
-
 
 class IsAdminOrReadOnly(permissions.BasePermission):
     """
@@ -11,7 +9,10 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         # Read permissions are allowed to any request but other
         # only to the admin user
-        return (
-            request.method in permissions.SAFE_METHODS
-            or request.user.role == ROLE.admin.name
-        )
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        if request.user.is_anonymous:
+            return False
+
+        return request.user.role == 'admin' or request.user.is_superuser
