@@ -15,6 +15,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .filters import TitleFilter
 from .mixins import ListCreateDestroyViewSet
 from .permissions import IsAdminOrReadOnly
 from .serializers import (
@@ -97,12 +98,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         permissions.IsAuthenticatedOrReadOnly,
     )
     filter_backends = (DjangoFilterBackend,)
-    filterset_fields = (
-        'category__slug',
-        'genre__slug',
-        'name',
-        'year',
-    )
+    filter_class = TitleFilter
     pagination_class = PageNumberPagination
 
 
