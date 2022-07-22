@@ -29,18 +29,23 @@ class CategorySerializer(serializers.ModelSerializer):
         )
 
 
-class CategorySlugOnlySerializer(serializers.ModelSerializer):
+class CategorySlugOnlySerializer(serializers.RelatedField):
     """
     Serializer where only Category slug should be passed for creation.
     """
 
-    class Meta:
-        model = Category
-        fields = (
-            'name',
-            'slug',
-        )
-        read_only_fields = ('name',)
+    queryset = Category.objects.all()
+
+    def to_representation(self, value):
+        data = {
+            'name': value.name,
+            'slug': value.slug,
+        }
+        return data
+
+    def to_internal_value(self, data):
+        value = {'slug': data}
+        return value
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -63,18 +68,23 @@ class GenreSerializer(serializers.ModelSerializer):
         )
 
 
-class GenreSlugOnlySerializer(serializers.ModelSerializer):
+class GenreSlugOnlySerializer(serializers.RelatedField):
     """
     Serializer where only Genre slug should be passed for creation.
     """
 
-    class Meta:
-        model = Genre
-        fields = (
-            'name',
-            'slug',
-        )
-        read_only_fields = ('name',)
+    queryset = Genre.objects.all()
+
+    def to_representation(self, value):
+        data = {
+            'name': value.name,
+            'slug': value.slug,
+        }
+        return data
+
+    def to_internal_value(self, data):
+        value = {'slug': data}
+        return value
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -94,15 +104,6 @@ class TitleSerializer(serializers.ModelSerializer):
             'category',
         )
 
-        # TODO: Can we also restrict by Category
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Title.objects.all(),
-                fields=('name', 'year'),
-                message='Такое произведение уже есть в БД',
-            )
-        ]
-
     def get_rating(self, obj):
         """
         Retrieves average score from reviews.
@@ -110,7 +111,7 @@ class TitleSerializer(serializers.ModelSerializer):
         an integer. Thus, it is converted to int.
         """
         avg_rating, *_ = obj.reviews.aggregate(Avg('score')).values()
-        rating = int(avg_rating) if avg_rating else 0
+        rating = int(avg_rating) if avg_rating else None
         return rating
 
     def validate_year(self, value):
@@ -126,8 +127,8 @@ class TitleSerializer(serializers.ModelSerializer):
         """
         Checks if category exists in db
         """
-        count = Category.objects.filter(**value).count()
-        if count == 0:
+        category_exists = Category.objects.filter(**value).exists()
+        if not category_exists:
             category_slug = value.get('slug')
             raise serializers.ValidationError(
                 f'Категории {category_slug} не существует'
@@ -139,8 +140,8 @@ class TitleSerializer(serializers.ModelSerializer):
         Checks if genre exists in db.
         """
         for genre in value:
-            count = Genre.objects.filter(**genre).count()
-            if count == 0:
+            genre_exists = Genre.objects.filter(**genre).exists()
+            if not genre_exists:
                 genre_slug = genre.get('slug')
                 raise serializers.ValidationError(
                     f'Жанра {genre_slug} не существует'
@@ -159,14 +160,23 @@ class TitleSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # popping values that will be processed separately
-        genres = validated_data.pop('genre')
-        category_data = validated_data.pop('category')
-        category = Category.objects.get(**category_data)
+        # before popping check that properties were specified,
+        # otherwise exception will happen.
+        genres = (
+            validated_data.pop('genre') if 'genre' in validated_data else []
+        )
+        category_data = (
+            validated_data.pop('category')
+            if 'category' in validated_data
+            else None
+        )
+        if category_data:
+            category = Category.objects.get(**category_data)
+            instance.category = category
 
         # setting new values to model instance
         for fieldname, value in validated_data.items():
             setattr(instance, fieldname, value)
-        instance.category = category
 
         # delete all current genres-title entries and add new ones
         GenreTitle.objects.filter(title=instance).delete()
@@ -191,8 +201,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_username(self, value):
         if value == "me":
-            raise serializers.ValidationError("You can't use 'me'"
-                                              " as your username.")
+            raise serializers.ValidationError(
+                "You can't use 'me'" " as your username."
+            )
         return value
 
 
@@ -207,8 +218,9 @@ class ObtainTokenSerializer(serializers.Serializer):
     def validate(self, data):
         user = get_object_or_404(User, username=data.get('username'))
         if data.get('confirmation_code') != user.confirmation_code:
-            raise serializers.ValidationError('Incorrect "confirmation_code"'
-                                              ' for user.')
+            raise serializers.ValidationError(
+                'Incorrect "confirmation_code"' ' for user.'
+            )
         return data
 
 
