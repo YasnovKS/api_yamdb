@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 
+from .validators import TitleUniqueTogetherValidator
 from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
 from users.models import User
 
@@ -103,6 +104,14 @@ class TitleSerializer(serializers.ModelSerializer):
             'genre',
             'category',
         )
+        validators = [
+            TitleUniqueTogetherValidator(
+                queryset=Title.objects.all(),
+                fields=('name', 'year', 'category'),
+                related_querysets={'category': Category.objects.all()},
+                message='Такое произведение уже существуте в БД',
+            )
+        ]
 
     def get_rating(self, obj):
         """

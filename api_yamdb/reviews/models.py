@@ -6,12 +6,9 @@ from users.models import User
 
 class Category(models.Model):
     name = models.CharField('имя категории', max_length=256)
-    slug = models.SlugField(max_length=50)
+    slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=('slug',), name='category')
-        ]
         ordering = [
             'slug',
         ]
@@ -22,12 +19,9 @@ class Category(models.Model):
 
 class Genre(models.Model):
     name = models.CharField('имя жанра', max_length=256)
-    slug = models.SlugField(max_length=50)
+    slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=('slug',), name='unique_genre')
-        ]
         ordering = [
             'slug',
         ]
