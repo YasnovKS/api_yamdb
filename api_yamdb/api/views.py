@@ -3,6 +3,7 @@ import uuid
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import  IsAuthenticatedOrReadOnly
 from rest_framework import filters, mixins, status, views, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
@@ -15,7 +16,7 @@ from .serializers import (CategorySerializer, CommentSerializer,
                           TitleSerializer)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
-
+from api.permissions import AuthorPermission
 
 class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     confirmation_code = str(uuid.uuid4())
@@ -81,7 +82,8 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = []
+    permission_classes = (AuthorPermission, IsAuthenticatedOrReadOnly, )
+    pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
         title = get_object_or_404(Title, pk=self.kwargs.get('title_id'))
@@ -94,7 +96,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = []
+    permission_classes = (AuthorPermission, IsAuthenticatedOrReadOnly, )
+    pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
         review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
