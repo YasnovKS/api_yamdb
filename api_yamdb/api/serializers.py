@@ -120,9 +120,6 @@ class TitleSerializer(serializers.ModelSerializer):
         return title
 
     def update(self, instance, validated_data):
-        # popping values that will be processed separately
-        # before popping check that properties were specified,
-        # otherwise exception will happen.
         genres = (
             validated_data.pop('genre') if 'genre' in validated_data else []
         )

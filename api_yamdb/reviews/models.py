@@ -9,9 +9,7 @@ class Category(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
-        ordering = [
-            'slug',
-        ]
+        ordering = ('slug',)
 
     def __str__(self):
         return self.name[:15]
@@ -22,9 +20,7 @@ class Genre(models.Model):
     slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
-        ordering = [
-            'slug',
-        ]
+        ordering = ('slug',)
 
     def __str__(self):
         return self.name[:15]
@@ -43,16 +39,10 @@ class Title(models.Model):
     )
 
     class Meta:
-        ordering = [
-            '-year',
-        ]
+        ordering = ('-year',)
         constraints = [
             models.UniqueConstraint(
-                fields=(
-                    'name',
-                    'year',
-                    'category',
-                ),
+                fields=('name', 'year', 'category'),
                 name='unique_title',
             )
         ]
@@ -62,10 +52,7 @@ class Title(models.Model):
 
 
 class GenreTitle(models.Model):
-    genre = models.ForeignKey(
-        Genre,
-        on_delete=models.CASCADE,
-    )
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
     title = models.ForeignKey(Title, on_delete=models.CASCADE)
 
     def __str__(self):

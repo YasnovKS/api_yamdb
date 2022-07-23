@@ -102,7 +102,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
 
     def get_serializer_class(self):
-        if self.action in ['create', 'partial_update']:
+        if self.action in ('create', 'partial_update'):
             return TitleSerializer
         return ReadOnlyTitleSerializer
 
