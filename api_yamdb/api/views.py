@@ -23,6 +23,7 @@ from .serializers import (
     CommentSerializer,
     GenreSerializer,
     ObtainTokenSerializer,
+    ReadOnlyTitleSerializer,
     RegisterSerializer,
     ReviewSerializer,
     TitleSerializer,
@@ -92,7 +93,6 @@ class GenreViewSet(ListCreateDestroyViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
     permission_classes = (
         IsAdminOrReadOnly,
         permissions.IsAuthenticatedOrReadOnly,
@@ -100,6 +100,11 @@ class TitleViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filter_class = TitleFilter
     pagination_class = PageNumberPagination
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'partial_update']:
+            return TitleSerializer
+        return ReadOnlyTitleSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

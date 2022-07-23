@@ -5,7 +5,6 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 
-from .validators import TitleUniqueTogetherValidator
 from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
 from users.models import User
 
@@ -30,25 +29,6 @@ class CategorySerializer(serializers.ModelSerializer):
         )
 
 
-class CategorySlugOnlySerializer(serializers.RelatedField):
-    """
-    Serializer where only Category slug should be passed for creation.
-    """
-
-    queryset = Category.objects.all()
-
-    def to_representation(self, value):
-        data = {
-            'name': value.name,
-            'slug': value.slug,
-        }
-        return data
-
-    def to_internal_value(self, data):
-        value = {'slug': data}
-        return value
-
-
 class GenreSerializer(serializers.ModelSerializer):
 
     slug = serializers.SlugField(
@@ -69,29 +49,10 @@ class GenreSerializer(serializers.ModelSerializer):
         )
 
 
-class GenreSlugOnlySerializer(serializers.RelatedField):
-    """
-    Serializer where only Genre slug should be passed for creation.
-    """
-
-    queryset = Genre.objects.all()
-
-    def to_representation(self, value):
-        data = {
-            'name': value.name,
-            'slug': value.slug,
-        }
-        return data
-
-    def to_internal_value(self, data):
-        value = {'slug': data}
-        return value
-
-
-class TitleSerializer(serializers.ModelSerializer):
+class ReadOnlyTitleSerializer(serializers.ModelSerializer):
     rating = serializers.SerializerMethodField()
-    genre = GenreSlugOnlySerializer(many=True)
-    category = CategorySlugOnlySerializer()
+    genre = GenreSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Title
@@ -104,14 +65,6 @@ class TitleSerializer(serializers.ModelSerializer):
             'genre',
             'category',
         )
-        validators = [
-            TitleUniqueTogetherValidator(
-                queryset=Title.objects.all(),
-                fields=('name', 'year', 'category'),
-                related_querysets={'category': Category.objects.all()},
-                message='Такое произведение уже существует в БД',
-            )
-        ]
 
     def get_rating(self, obj):
         """
@@ -123,6 +76,33 @@ class TitleSerializer(serializers.ModelSerializer):
         rating = int(avg_rating) if avg_rating else None
         return rating
 
+
+class TitleSerializer(serializers.ModelSerializer):
+    genre = serializers.SlugRelatedField(
+        many=True, slug_field='slug', queryset=Genre.objects.all()
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='slug', queryset=Category.objects.all()
+    )
+
+    class Meta:
+        model = Title
+        fields = (
+            'id',
+            'name',
+            'year',
+            'description',
+            'genre',
+            'category',
+        )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Title.objects.all(),
+                fields=('name', 'year', 'category'),
+                message='Такое произведение уже существует в БД',
+            )
+        ]
+
     def validate_year(self, value):
         todays_year = datetime.date.today().year
         if value > todays_year:
@@ -132,39 +112,11 @@ class TitleSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate_category(self, value):
-        """
-        Checks if category exists in db
-        """
-        category_exists = Category.objects.filter(**value).exists()
-        if not category_exists:
-            category_slug = value.get('slug')
-            raise serializers.ValidationError(
-                f'Категории {category_slug} не существует'
-            )
-        return value
-
-    def validate_genre(self, value):
-        """
-        Checks if genre exists in db.
-        """
-        for genre in value:
-            genre_exists = Genre.objects.filter(**genre).exists()
-            if not genre_exists:
-                genre_slug = genre.get('slug')
-                raise serializers.ValidationError(
-                    f'Жанра {genre_slug} не существует'
-                )
-        return value
-
     def create(self, validated_data):
         genres = validated_data.pop('genre')
-        category_data = validated_data.pop('category')
-        category = Category.objects.get(**category_data)
-        title = Title.objects.create(**validated_data, category=category)
+        title = Title.objects.create(**validated_data)
         for genre in genres:
-            current_genre = Genre.objects.get(**genre)
-            GenreTitle.objects.create(genre=current_genre, title=title)
+            GenreTitle.objects.create(genre=genre, title=title)
         return title
 
     def update(self, instance, validated_data):
@@ -174,14 +126,6 @@ class TitleSerializer(serializers.ModelSerializer):
         genres = (
             validated_data.pop('genre') if 'genre' in validated_data else []
         )
-        category_data = (
-            validated_data.pop('category')
-            if 'category' in validated_data
-            else None
-        )
-        if category_data:
-            category = Category.objects.get(**category_data)
-            instance.category = category
 
         # setting new values to model instance
         for fieldname, value in validated_data.items():
