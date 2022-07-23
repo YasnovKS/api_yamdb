@@ -109,7 +109,7 @@ class TitleSerializer(serializers.ModelSerializer):
                 queryset=Title.objects.all(),
                 fields=('name', 'year', 'category'),
                 related_querysets={'category': Category.objects.all()},
-                message='Такое произведение уже существуте в БД',
+                message='Такое произведение уже существует в БД',
             )
         ]
 

@@ -2,6 +2,25 @@ from rest_framework.validators import UniqueTogetherValidator
 
 
 class TitleUniqueTogetherValidator(UniqueTogetherValidator):
+    """
+    The same functionality as in UniqueTogetherValidator but
+    can handle cases when any of the ForeignKey fields incoming value is not
+    a related model itself but a custom value.
+
+    Example:
+    ForeignKey field 'category' that has
+    incoming value {"name": "string", "slug": "string"}.
+
+    So UniqueTogetherValidator in that case does filtering as is and
+    returns empty queryset:
+        1. queryset.filter(category={"name": "string", "slug": "string"}))
+
+    TitleUniqueTogetherValidator does the following:
+        1. Gets category instance:
+            category = related_queryset.filter(name=string, slug=string)
+        2. Passes it for filtering: queryset.filter(category=category)
+    """
+
     related_querysets = {}
 
     def __init__(self, queryset, fields, related_querysets, message=None):
