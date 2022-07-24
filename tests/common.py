@@ -79,7 +79,8 @@ def create_titles(admin_client):
 def create_reviews(admin_client, admin):
     def create_review(uclient, title_id, text, score):
         data = {'text': text, 'score': score}
-        response = uclient.post(f'/api/v1/titles/{title_id}/reviews/', data=data)
+        response = uclient.post(
+            f'/api/v1/titles/{title_id}/reviews/', data=data)
         return response.json()['id']
 
     titles, _, _ = create_titles(admin_client)
@@ -99,7 +100,8 @@ def create_reviews(admin_client, admin):
 def create_comments(admin_client, admin):
     def create_comment(uclient, title_id, review_id, text):
         data = {'text': text}
-        response = uclient.post(f'/api/v1/titles/{title_id}/reviews/{review_id}/comments/', data=data)
+        response = uclient.post(
+            f'/api/v1/titles/{title_id}/reviews/{review_id}/comments/', data=data)
         return response.json()['id']
 
     reviews, titles, user, moderator = create_reviews(admin_client, admin)
