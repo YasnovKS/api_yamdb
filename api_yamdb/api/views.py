@@ -11,12 +11,12 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .mixins import ListCreateDestroyViewSet
-from .permissions import IsAdminPermission, IsProfileOwnerPermission
+from .permissions import IsAdminPermission
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ObtainTokenSerializer,
                           RegisterSerializer, ReviewSerializer,
-                          TitleSerializer, UsersAdminManageSerializer,
-                          SelfProfileSerializer)
+                          SelfProfileSerializer, TitleSerializer,
+                          UsersAdminManageSerializer)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
@@ -77,15 +77,16 @@ class UsersAdminManageViewSet(viewsets.ModelViewSet):
         serializer.save(confirmation_code=confirmation_code)
 
     @action(methods=['get', 'patch'], detail=False,
-            permission_classes=[IsAuthenticated,
-            IsProfileOwnerPermission, IsAdminPermission]
+            permission_classes=[IsAuthenticated]
             )
     def me(self, request):
         profile = User.objects.get(pk=request.user.id)
         if request.method == "GET":
             serializer = SelfProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        serializer = SelfProfileSerializer(data=self.request.data)
+        serializer = SelfProfileSerializer(request.user,
+                                           data=self.request.data,
+                                           partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
