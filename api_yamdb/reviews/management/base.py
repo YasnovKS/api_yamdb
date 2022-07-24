@@ -81,7 +81,10 @@ class ImportDataBaseCommand(BaseCommand):
                             f'модели {model.__name__}'
                         )
                         self.stdout.write(self.style.SUCCESS(msg))
-                    model.objects.get_or_create(**record)
+                    try:
+                        model.objects.get(pk=record.get('id'))
+                    except model.DoesNotExist:
+                        model.objects.create(**record)
                     records_imported_count += 1
             return records_imported_count
         except FileNotFoundError:
