@@ -1,10 +1,19 @@
+from enum import Enum
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-ROLES = (('user', 'Пользователь'),
-         ('moderator', 'Модератор'),
-         ('admin', 'Администратор')
-         )
+
+class ROLES(Enum):
+    user = 'Пользователь'
+    moderator = 'Модератор'
+    admin = 'Администратор'
+
+    @classmethod
+    def get_roles(cls):
+        return [(role.name, role.value) for role in cls]
+
+    def __str__(self):
+        return
 
 
 class User(AbstractUser):
@@ -16,7 +25,7 @@ class User(AbstractUser):
                            verbose_name='О себе',
                            )
     role = models.CharField(max_length=20,
-                            choices=ROLES,
+                            choices=ROLES.get_roles(),
                             default='user',
                             verbose_name='Роль')
     confirmation_code = models.CharField(max_length=50,
