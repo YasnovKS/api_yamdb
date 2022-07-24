@@ -151,7 +151,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_username(self, value):
         '''
-        Chcking that user cant use "me" as username.
+        Checking that user cant use "me" as username.
         '''
         if value == "me":
             raise serializers.ValidationError('Вы не можете использовать "me"'
