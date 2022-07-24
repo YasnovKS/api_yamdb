@@ -183,11 +183,8 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('email', 'username')
-        validators = [
-            UniqueTogetherValidator(
-                queryset=User.objects.all(), fields=('username', 'email')
-            )
-        ]
+        validators = [UniqueTogetherValidator(User.objects.all(),
+                                              ('email', 'username'))]
 
     def validate_username(self, value):
         if value == "me":
@@ -214,11 +211,21 @@ class ObtainTokenSerializer(serializers.Serializer):
         return data
 
 
-class UserListSerializer(serializers.ModelSerializer):
+class UsersAdminManageSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
+
+
+class SelfProfileSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'bio', 'role')
+        read_only_fields = ('role',)
 
 
 class ReviewSerializer(serializers.ModelSerializer):

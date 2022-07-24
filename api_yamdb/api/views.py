@@ -4,17 +4,19 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, views, viewsets
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import IsAuthenticated
-from .permissions import IsAdminPermission
 
 from .mixins import ListCreateDestroyViewSet
+from .permissions import IsAdminPermission, IsProfileOwnerPermission
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ObtainTokenSerializer,
                           RegisterSerializer, ReviewSerializer,
-                          TitleSerializer, UserListSerializer)
+                          TitleSerializer, UsersAdminManageSerializer,
+                          SelfProfileSerializer)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
@@ -23,12 +25,23 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_200_OK,
-                        headers=headers)
+        try:
+            user = User.objects.filter(username=request.data['username'],
+                                       email=request.data['email'])[0]
+            send_mail(
+                'E-mail verification',
+                f'Your confirmation_code is {user.confirmation_code}',
+                'register@yamdb.ru',
+                [request.data['email']],
+            )
+            return Response(request.data, status=status.HTTP_200_OK)
+        except Exception:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK,
+                            headers=headers)
 
     def perform_create(self, serializer):
         confirmation_code = str(uuid.uuid4())
@@ -52,15 +65,30 @@ class ObtainTokenView(views.APIView):
                         status=status.HTTP_200_OK)
 
 
-class GetOrCreateUsersViewSet(viewsets.ModelViewSet):
+class UsersAdminManageViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserListSerializer
+    serializer_class = UsersAdminManageSerializer
+    lookup_field = 'username'
     pagination_class = PageNumberPagination
     permission_classes = (IsAuthenticated, IsAdminPermission)
 
     def perform_create(self, serializer):
         confirmation_code = str(uuid.uuid4())
         serializer.save(confirmation_code=confirmation_code)
+
+    @action(methods=['get', 'patch'], detail=False,
+            permission_classes=[IsAuthenticated,
+            IsProfileOwnerPermission, IsAdminPermission]
+            )
+    def me(self, request):
+        profile = User.objects.get(pk=request.user.id)
+        if request.method == "GET":
+            serializer = SelfProfileSerializer(profile)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = SelfProfileSerializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
