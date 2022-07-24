@@ -173,6 +173,13 @@ class ObtainTokenSerializer(serializers.Serializer):
             )
         return data
 
+class CreateTitleDefault(object):
+    def set_context(self, serializer_field):
+        view = serializer_field.context['view']
+        self.title = view.kwargs.get('title_id')
+
+    def call(self):
+        return self.title
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
@@ -181,10 +188,13 @@ class ReviewSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault(),
     )
     score = serializers.IntegerField(min_value=1, max_value=10)
-
+    title = serializers.HiddenField(
+        default=serializers.CreateOnlyDefault(CreateTitleDefault())
+    )
+    
     class Meta:
         model = Review
-        fields = ['id', 'text', 'author', 'score', 'pub_date']
+        fields = ('id', 'text', 'author', 'score', 'pub_date', 'title')
         validators = [
             UniqueTogetherValidator(
                 queryset=Review.objects.all(), fields=['author', 'title']
@@ -201,4 +211,4 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ['id', 'text', 'author', 'pub_date']
+        fields = ('id', 'text', 'author', 'pub_date')
