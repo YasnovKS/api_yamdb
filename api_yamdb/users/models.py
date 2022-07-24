@@ -1,4 +1,5 @@
 from enum import Enum
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -13,7 +14,7 @@ class ROLES(Enum):
         return [(role.name, role.value) for role in cls]
 
     def __str__(self):
-        return
+        return self.name
 
 
 class User(AbstractUser):

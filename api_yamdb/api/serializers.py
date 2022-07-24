@@ -140,6 +140,9 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for registration new users.
+    '''
     class Meta:
         model = User
         fields = ('email', 'username')
@@ -147,6 +150,9 @@ class RegisterSerializer(serializers.ModelSerializer):
                                               ('email', 'username'))]
 
     def validate_username(self, value):
+        '''
+        Chcking that user cant use "me" as username.
+        '''
         if value == "me":
             raise serializers.ValidationError('Вы не можете использовать "me"'
                                               ' в качестве имени пользователя.'
@@ -155,6 +161,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class ObtainTokenSerializer(serializers.Serializer):
+    '''
+    Serializer for getting token after registration.
+    '''
     username = serializers.CharField(required=True)
     confirmation_code = serializers.CharField(required=True)
 
@@ -163,6 +172,9 @@ class ObtainTokenSerializer(serializers.Serializer):
         fields = ('username', 'confirmation_code')
 
     def validate(self, data):
+        '''
+        Checking that user entered right confirmation_code.
+        '''
         user = get_object_or_404(User, username=data.get('username'))
         if data.get('confirmation_code') != user.confirmation_code:
             raise serializers.ValidationError('Введен неверный'
@@ -170,15 +182,8 @@ class ObtainTokenSerializer(serializers.Serializer):
                                               )
         return data
 
-class CreateTitleDefault(object):
-    def set_context(self, serializer_field):
-        view = serializer_field.context['view']
-        self.title = view.kwargs.get('title_id')
 
-    def call(self):
-        return self.title
-
-class UsersAdminManageSerializer(serializers.ModelSerializer):
+class UsersManageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
@@ -195,6 +200,16 @@ class SelfProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ('role',)
 
 
+class CreateTitleDefault(object):
+    requires_context = True
+
+    def __call__(self, serializer_field):
+        view = serializer_field.context['view']
+        title_id = view.kwargs.get('title_id')
+        title = get_object_or_404(Title, pk=title_id)
+        return title
+
+
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
@@ -205,7 +220,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     title = serializers.HiddenField(
         default=serializers.CreateOnlyDefault(CreateTitleDefault())
     )
-    
+
     class Meta:
         model = Review
         fields = ('id', 'text', 'author', 'score', 'pub_date', 'title')
