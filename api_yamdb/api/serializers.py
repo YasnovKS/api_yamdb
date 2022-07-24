@@ -29,20 +29,6 @@ class CategorySerializer(serializers.ModelSerializer):
         )
 
 
-class CategorySlugOnlySerializer(serializers.ModelSerializer):
-    """
-    Serializer where only Category slug should be passed for creation.
-    """
-
-    class Meta:
-        model = Category
-        fields = (
-            'name',
-            'slug',
-        )
-        read_only_fields = ('name',)
-
-
 class GenreSerializer(serializers.ModelSerializer):
 
     slug = serializers.SlugField(
@@ -63,24 +49,10 @@ class GenreSerializer(serializers.ModelSerializer):
         )
 
 
-class GenreSlugOnlySerializer(serializers.ModelSerializer):
-    """
-    Serializer where only Genre slug should be passed for creation.
-    """
-
-    class Meta:
-        model = Genre
-        fields = (
-            'name',
-            'slug',
-        )
-        read_only_fields = ('name',)
-
-
-class TitleSerializer(serializers.ModelSerializer):
+class ReadOnlyTitleSerializer(serializers.ModelSerializer):
     rating = serializers.SerializerMethodField()
-    genre = GenreSlugOnlySerializer(many=True)
-    category = CategorySlugOnlySerializer()
+    genre = GenreSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Title
@@ -94,15 +66,6 @@ class TitleSerializer(serializers.ModelSerializer):
             'category',
         )
 
-        # TODO: Can we also restrict by Category
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Title.objects.all(),
-                fields=('name', 'year'),
-                message='Такое произведение уже есть в БД',
-            )
-        ]
-
     def get_rating(self, obj):
         """
         Retrieves average score from reviews.
@@ -110,8 +73,35 @@ class TitleSerializer(serializers.ModelSerializer):
         an integer. Thus, it is converted to int.
         """
         avg_rating, *_ = obj.reviews.aggregate(Avg('score')).values()
-        rating = int(avg_rating) if avg_rating else 0
+        rating = int(avg_rating) if avg_rating else None
         return rating
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    genre = serializers.SlugRelatedField(
+        many=True, slug_field='slug', queryset=Genre.objects.all()
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='slug', queryset=Category.objects.all()
+    )
+
+    class Meta:
+        model = Title
+        fields = (
+            'id',
+            'name',
+            'year',
+            'description',
+            'genre',
+            'category',
+        )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Title.objects.all(),
+                fields=('name', 'year', 'category'),
+                message='Такое произведение уже существует в БД',
+            )
+        ]
 
     def validate_year(self, value):
         todays_year = datetime.date.today().year
@@ -122,51 +112,21 @@ class TitleSerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate_category(self, value):
-        """
-        Checks if category exists in db
-        """
-        count = Category.objects.filter(**value).count()
-        if count == 0:
-            category_slug = value.get('slug')
-            raise serializers.ValidationError(
-                f'Категории {category_slug} не существует'
-            )
-        return value
-
-    def validate_genre(self, value):
-        """
-        Checks if genre exists in db.
-        """
-        for genre in value:
-            count = Genre.objects.filter(**genre).count()
-            if count == 0:
-                genre_slug = genre.get('slug')
-                raise serializers.ValidationError(
-                    f'Жанра {genre_slug} не существует'
-                )
-        return value
-
     def create(self, validated_data):
         genres = validated_data.pop('genre')
-        category_data = validated_data.pop('category')
-        category = Category.objects.get(**category_data)
-        title = Title.objects.create(**validated_data, category=category)
+        title = Title.objects.create(**validated_data)
         for genre in genres:
-            current_genre = Genre.objects.get(**genre)
-            GenreTitle.objects.create(genre=current_genre, title=title)
+            GenreTitle.objects.create(genre=genre, title=title)
         return title
 
     def update(self, instance, validated_data):
-        # popping values that will be processed separately
-        genres = validated_data.pop('genre')
-        category_data = validated_data.pop('category')
-        category = Category.objects.get(**category_data)
+        genres = (
+            validated_data.pop('genre') if 'genre' in validated_data else []
+        )
 
         # setting new values to model instance
         for fieldname, value in validated_data.items():
             setattr(instance, fieldname, value)
-        instance.category = category
 
         # delete all current genres-title entries and add new ones
         GenreTitle.objects.filter(title=instance).delete()
@@ -191,8 +151,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_username(self, value):
         if value == "me":
-            raise serializers.ValidationError("You can't use 'me'"
-                                              " as your username.")
+            raise serializers.ValidationError(
+                "You can't use 'me'" " as your username."
+            )
         return value
 
 
@@ -207,8 +168,9 @@ class ObtainTokenSerializer(serializers.Serializer):
     def validate(self, data):
         user = get_object_or_404(User, username=data.get('username'))
         if data.get('confirmation_code') != user.confirmation_code:
-            raise serializers.ValidationError('Incorrect "confirmation_code"'
-                                              ' for user.')
+            raise serializers.ValidationError(
+                'Incorrect "confirmation_code"' ' for user.'
+            )
         return data
 
 class CreateTitleDefault(object):

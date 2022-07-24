@@ -8,12 +8,19 @@ from rest_framework import filters, mixins, status, views, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from .filters import TitleFilter
 from .mixins import ListCreateDestroyViewSet
-from .serializers import (CategorySerializer, CommentSerializer,
-                          GenreSerializer, ObtainTokenSerializer,
-                          RegisterSerializer, ReviewSerializer,
-                          TitleSerializer)
+from .permissions import IsAdminOrReadOnly
+from .serializers import (
+    CategorySerializer,
+    CommentSerializer,
+    GenreSerializer,
+    ObtainTokenSerializer,
+    ReadOnlyTitleSerializer,
+    RegisterSerializer,
+    ReviewSerializer,
+    TitleSerializer,
+)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 from api.permissions import AuthorPermission
@@ -27,8 +34,9 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_200_OK,
-                        headers=headers)
+        return Response(
+            serializer.data, status=status.HTTP_200_OK, headers=headers
+        )
 
     def perform_create(self, serializer):
         serializer.save(confirmation_code=self.confirmation_code)
@@ -47,37 +55,49 @@ class ObtainTokenView(views.APIView):
         username = serializer.data.get('username')
         user = get_object_or_404(User, username=username)
         token = RefreshToken.for_user(user).access_token
-        return Response({'token': str(token)},
-                        status=status.HTTP_200_OK)
+        return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
 
 class CategoryViewSet(ListCreateDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    lookup_field = 'slug'
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+    )
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    search_fields = ('$name',)
     pagination_class = PageNumberPagination
 
 
 class GenreViewSet(ListCreateDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    lookup_field = 'slug'
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+    )
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    search_fields = ('$name',)
     pagination_class = PageNumberPagination
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
-    filter_backends = (DjangoFilterBackend,)
-    filterset_fields = (
-        'category__slug',
-        'genre__slug',
-        'name',
-        'year',
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
     )
+    filter_backends = (DjangoFilterBackend,)
+    filter_class = TitleFilter
     pagination_class = PageNumberPagination
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'partial_update'):
+            return TitleSerializer
+        return ReadOnlyTitleSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
