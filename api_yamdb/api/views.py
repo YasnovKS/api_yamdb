@@ -3,27 +3,24 @@ import uuid
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.permissions import  IsAuthenticatedOrReadOnly
-from rest_framework import filters, mixins, status, views, viewsets
+from rest_framework import (filters, mixins, permissions, status, views,
+                            viewsets)
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from .filters import TitleFilter
 from .mixins import ListCreateDestroyViewSet
 from .permissions import IsAdminOrReadOnly
-from .serializers import (
-    CategorySerializer,
-    CommentSerializer,
-    GenreSerializer,
-    ObtainTokenSerializer,
-    ReadOnlyTitleSerializer,
-    RegisterSerializer,
-    ReviewSerializer,
-    TitleSerializer,
-)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          GenreSerializer, ObtainTokenSerializer,
+                          ReadOnlyTitleSerializer, RegisterSerializer,
+                          ReviewSerializer, TitleSerializer)
+from api.permissions import AuthorPermission
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
-from api.permissions import AuthorPermission
+
 
 class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     confirmation_code = str(uuid.uuid4())
