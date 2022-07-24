@@ -3,14 +3,14 @@ from rest_framework.routers import SimpleRouter
 
 from .views import (CategoryViewSet, CommentViewSet, GenreViewSet,
                     ObtainTokenView, RegisterViewSet, ReviewViewSet,
-                    TitleViewSet, UsersAdminManageViewSet)
+                    TitleViewSet, UsersManageViewSet)
 
 app_name = 'api'
 
 router_v1 = SimpleRouter()
 
 router_v1.register('auth/signup', RegisterViewSet, basename='register')
-router_v1.register('users', UsersAdminManageViewSet, basename='users')
+router_v1.register('users', UsersManageViewSet, basename='users')
 router_v1.register('categories', CategoryViewSet, basename='category')
 router_v1.register('genres', GenreViewSet, basename='genre')
 router_v1.register('titles', TitleViewSet, basename='title')

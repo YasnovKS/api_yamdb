@@ -1,4 +1,5 @@
 from rest_framework import permissions
+
 from users.models import ROLES
 
 
@@ -39,4 +40,5 @@ class AuthorPermission(permissions.BasePermission):
         return (
             request.method in permissions.SAFE_METHODS
             or obj.author == request.user
+            or request.user.role == ROLES.moderator.name
         )

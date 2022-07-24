@@ -14,21 +14,28 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .filters import TitleFilter
 from .mixins import ListCreateDestroyViewSet
-from .permissions import IsAdminOrReadOnly, IsAdminPermission
+from .permissions import (IsAdminPermission, AuthorPermission,
+                          IsAdminOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ObtainTokenSerializer,
                           ReadOnlyTitleSerializer, RegisterSerializer,
                           ReviewSerializer, SelfProfileSerializer,
-                          TitleSerializer, UsersAdminManageSerializer)
-from api.permissions import AuthorPermission
+                          TitleSerializer, UsersManageSerializer)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
 
 class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    '''
+    This viewset is intended for registration new users. Also users can
+    get their confirmation code if registration was by person who had
+    role "admin".
+    '''
     serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
+        #  User can get email with confirmation code after
+        #  entering valid username and email.
         try:
             user = User.objects.filter(username=request.data['username'],
                                        email=request.data['email'])[0]
@@ -59,6 +66,10 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
 
 class ObtainTokenView(views.APIView):
+    '''
+    This is a viewset for obtaining token by entering user "username"
+    and "confirmation code".
+    '''
     def post(self, request):
         serializer = ObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -68,9 +79,9 @@ class ObtainTokenView(views.APIView):
         return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
 
-class UsersAdminManageViewSet(viewsets.ModelViewSet):
+class UsersManageViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UsersAdminManageSerializer
+    serializer_class = UsersManageSerializer
     lookup_field = 'username'
     pagination_class = PageNumberPagination
     permission_classes = (IsAuthenticated, IsAdminPermission)
@@ -139,7 +150,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = (AuthorPermission, IsAuthenticatedOrReadOnly, )
+    permission_classes = (AuthorPermission, IsAuthenticatedOrReadOnly)
     pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
@@ -153,7 +164,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (AuthorPermission, IsAuthenticatedOrReadOnly, )
+    permission_classes = (AuthorPermission, IsAuthenticatedOrReadOnly)
     pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
