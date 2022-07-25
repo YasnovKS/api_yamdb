@@ -18,9 +18,10 @@ class ROLES(Enum):
 
 
 class User(AbstractUser):
-    username = models.CharField(max_length=25,
+    username = models.CharField(max_length=150,
                                 unique=True)
-    email = models.EmailField(unique=True)
+    email = models.EmailField(max_length=254,
+                              unique=True)
     bio = models.TextField(max_length=500,
                            blank=True,
                            verbose_name='О себе',

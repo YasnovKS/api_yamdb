@@ -1,4 +1,5 @@
 import datetime
+import uuid
 
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -139,23 +140,60 @@ class TitleSerializer(serializers.ModelSerializer):
         return instance
 
 
-class RegisterSerializer(serializers.ModelSerializer):
-    '''
-    Serializer for registration new users.
-    '''
+class RegisterSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150,
+                                     required=True
+                                     )
+    email = serializers.EmailField(max_length=254,
+                                   required=True
+                                   )
+
     class Meta:
-        model = User
-        fields = ('email', 'username')
-        validators = [UniqueTogetherValidator(User.objects.all(),
-                                              ('email', 'username'))]
+        fields = ('username', 'email')
+
+    def validate(self, data):
+        queryset = User.objects.all().values()
+        for object in queryset:
+            username = object['username']
+            email = object['email']
+            if username == data.get('username') and email == data.get('email'):
+                return data
+            if username == data.get('username'):
+                raise serializers.ValidationError('Пользователь с таким именем'
+                                                  ' уже существет.')
+            if email == data.get('email'):
+                raise serializers.ValidationError('Пользователь с указанным '
+                                                  'e-mail адресом уже '
+                                                  'существует.')
+        confirmation_code = str(uuid.uuid4())
+        data['confirmation_code'] = confirmation_code
+        return data
 
     def validate_username(self, value):
         '''
-        Checking that user cant use "me" as username.
+        Checking rules for creating a username.
         '''
+        MIN_LENGTH = 2  # Minimum number of characters in username.
+
         if value == "me":
             raise serializers.ValidationError('Вы не можете использовать "me"'
                                               ' в качестве имени пользователя.'
+                                              )
+        if len(value) < MIN_LENGTH:
+            raise serializers.ValidationError('Имя пользователя не может быть'
+                                              ' короче 2-х знаков.'
+                                              )
+        return value
+
+    def validate_email(self, value):
+        '''
+        Checking rules for creating an e-mail.
+        '''
+        MIN_LENGTH = 5  # Minimum number of characters in e-mail.
+
+        if len(value) < MIN_LENGTH:
+            raise serializers.ValidationError('Некорректно введен адрес '
+                                              'электронной почты.'
                                               )
         return value
 
@@ -164,7 +202,8 @@ class ObtainTokenSerializer(serializers.Serializer):
     '''
     Serializer for getting token after registration.
     '''
-    username = serializers.CharField(required=True)
+    username = serializers.CharField(max_length=150,
+                                     required=True)
     confirmation_code = serializers.CharField(required=True)
 
     class Meta:

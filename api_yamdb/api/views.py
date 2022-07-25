@@ -33,36 +33,25 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     '''
     serializer_class = RegisterSerializer
 
-    def create(self, request, *args, **kwargs):
-        #  User can get email with confirmation code after
-        #  entering valid username and email.
-        try:
-            user = User.objects.filter(username=request.data['username'],
-                                       email=request.data['email'])[0]
-            send_mail(
-                'E-mail verification',
-                f'Your confirmation_code is {user.confirmation_code}',
-                'register@yamdb.ru',
-                [request.data['email']],
-            )
-            return Response(request.data, status=status.HTTP_200_OK)
-        except Exception:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_200_OK,
-                            headers=headers)
-
-    def perform_create(self, serializer):
-        confirmation_code = str(uuid.uuid4())
-        serializer.save(confirmation_code=confirmation_code)
+    def send_email(self, user):
+        confirmation_code = user[0].confirmation_code
+        email = user[0].email
         send_mail(
             'E-mail verification',
             f'Your confirmation_code is {confirmation_code}',
             'register@yamdb.ru',
-            [serializer.data['email']],
+            [email]
         )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.get_or_create(**serializer.validated_data)
+        self.send_email(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def perform_create(self, serializer):
+        pass
 
 
 class ObtainTokenView(views.APIView):
