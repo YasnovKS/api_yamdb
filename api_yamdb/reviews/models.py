@@ -11,6 +11,8 @@ class Category(models.Model):
 
     class Meta:
         ordering = ('slug',)
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
 
     def __str__(self):
         return self.name[:15]
@@ -22,6 +24,8 @@ class Genre(models.Model):
 
     class Meta:
         ordering = ('slug',)
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
 
     def __str__(self):
         return self.name[:15]
@@ -44,6 +48,8 @@ class Title(models.Model):
 
     class Meta:
         ordering = ('-year',)
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
         constraints = [
             models.UniqueConstraint(
                 fields=('name', 'year', 'category'),
