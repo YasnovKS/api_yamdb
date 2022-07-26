@@ -1,6 +1,7 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from .validators import validate_not_future_year
 from users.models import User
 
 
@@ -10,6 +11,8 @@ class Category(models.Model):
 
     class Meta:
         ordering = ('slug',)
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
 
     def __str__(self):
         return self.name[:15]
@@ -21,6 +24,8 @@ class Genre(models.Model):
 
     class Meta:
         ordering = ('slug',)
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
 
     def __str__(self):
         return self.name[:15]
@@ -28,7 +33,10 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField('название', max_length=256)
-    year = models.PositiveIntegerField('год выпуска')
+    year = models.PositiveSmallIntegerField(
+        'год выпуска',
+        validators=[validate_not_future_year],
+    )
     description = models.TextField('описание', blank=True, default='')
     genre = models.ManyToManyField(Genre, through='GenreTitle')
     category = models.ForeignKey(
@@ -40,6 +48,8 @@ class Title(models.Model):
 
     class Meta:
         ordering = ('-year',)
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
         constraints = [
             models.UniqueConstraint(
                 fields=('name', 'year', 'category'),

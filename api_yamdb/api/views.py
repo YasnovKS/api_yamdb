@@ -1,26 +1,41 @@
 import uuid
 
 from django.core.mail import send_mail
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import (filters, mixins, permissions, status, views,
-                            viewsets)
+from rest_framework import (
+    filters,
+    mixins,
+    permissions,
+    status,
+    views,
+    viewsets,
+)
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import (IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .filters import TitleFilter
 from .mixins import ListCreateDestroyViewSet
-from .permissions import (IsAdminPermission, AuthorPermission,
-                          IsAdminOrReadOnly)
-from .serializers import (CategorySerializer, CommentSerializer,
-                          GenreSerializer, ObtainTokenSerializer,
-                          ReadOnlyTitleSerializer, RegisterSerializer,
-                          ReviewSerializer, SelfProfileSerializer,
-                          TitleSerializer, UsersManageSerializer)
+from .permissions import AuthorPermission, IsAdminOrReadOnly, IsAdminPermission
+from .serializers import (
+    CategorySerializer,
+    CommentSerializer,
+    GenreSerializer,
+    ObtainTokenSerializer,
+    ReadOnlyTitleSerializer,
+    RegisterSerializer,
+    ReviewSerializer,
+    SelfProfileSerializer,
+    TitleSerializer,
+    UsersManageSerializer,
+)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
@@ -31,14 +46,16 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     get their confirmation code if registration was by person who had
     role "admin".
     '''
+
     serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
         #  User can get email with confirmation code after
         #  entering valid username and email.
         try:
-            user = User.objects.filter(username=request.data['username'],
-                                       email=request.data['email'])[0]
+            user = User.objects.filter(
+                username=request.data['username'], email=request.data['email']
+            )[0]
             send_mail(
                 'E-mail verification',
                 f'Your confirmation_code is {user.confirmation_code}',
@@ -51,8 +68,9 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_200_OK,
-                            headers=headers)
+            return Response(
+                serializer.data, status=status.HTTP_200_OK, headers=headers
+            )
 
     def perform_create(self, serializer):
         confirmation_code = str(uuid.uuid4())
@@ -70,6 +88,7 @@ class ObtainTokenView(views.APIView):
     This is a viewset for obtaining token by entering user "username"
     and "confirmation code".
     '''
+
     def post(self, request):
         serializer = ObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -90,50 +109,47 @@ class UsersManageViewSet(viewsets.ModelViewSet):
         confirmation_code = str(uuid.uuid4())
         serializer.save(confirmation_code=confirmation_code)
 
-    @action(methods=['get', 'patch'], detail=False,
-            permission_classes=[IsAuthenticated]
-            )
+    @action(
+        methods=['get', 'patch'],
+        detail=False,
+        permission_classes=[IsAuthenticated],
+    )
     def me(self, request):
         profile = User.objects.get(pk=request.user.id)
         if request.method == "GET":
             serializer = SelfProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        serializer = SelfProfileSerializer(request.user,
-                                           data=self.request.data,
-                                           partial=True)
+        serializer = SelfProfileSerializer(
+            request.user, data=self.request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
 
 
-class CategoryViewSet(ListCreateDestroyViewSet):
+class SlugNameViewSet(ListCreateDestroyViewSet):
+    lookup_field = 'slug'
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+    )
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('$name',)
+    pagination_class = PageNumberPagination
+
+
+class CategoryViewSet(SlugNameViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    lookup_field = 'slug'
-    permission_classes = (
-        IsAdminOrReadOnly,
-        permissions.IsAuthenticatedOrReadOnly,
-    )
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('$name',)
-    pagination_class = PageNumberPagination
 
 
-class GenreViewSet(ListCreateDestroyViewSet):
+class GenreViewSet(SlugNameViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    lookup_field = 'slug'
-    permission_classes = (
-        IsAdminOrReadOnly,
-        permissions.IsAuthenticatedOrReadOnly,
-    )
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('$name',)
-    pagination_class = PageNumberPagination
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
+    queryset = Title.objects.all().annotate(rating=Avg('reviews__score'))
     permission_classes = (
         IsAdminOrReadOnly,
         permissions.IsAuthenticatedOrReadOnly,
