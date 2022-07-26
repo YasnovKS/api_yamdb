@@ -127,30 +127,25 @@ class UsersManageViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class CategoryViewSet(ListCreateDestroyViewSet):
+class SlugNameViewSet(ListCreateDestroyViewSet):
+    lookup_field = 'slug'
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+    )
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('$name',)
+    pagination_class = PageNumberPagination
+
+
+class CategoryViewSet(SlugNameViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    lookup_field = 'slug'
-    permission_classes = (
-        IsAdminOrReadOnly,
-        permissions.IsAuthenticatedOrReadOnly,
-    )
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('$name',)
-    pagination_class = PageNumberPagination
 
 
-class GenreViewSet(ListCreateDestroyViewSet):
+class GenreViewSet(SlugNameViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    lookup_field = 'slug'
-    permission_classes = (
-        IsAdminOrReadOnly,
-        permissions.IsAuthenticatedOrReadOnly,
-    )
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('$name',)
-    pagination_class = PageNumberPagination
 
 
 class TitleViewSet(viewsets.ModelViewSet):
