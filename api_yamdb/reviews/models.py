@@ -1,6 +1,7 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from .validators import validate_not_future_year
 from users.models import User
 
 
@@ -28,7 +29,10 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField('название', max_length=256)
-    year = models.PositiveIntegerField('год выпуска')
+    year = models.PositiveSmallIntegerField(
+        'год выпуска',
+        validators=[validate_not_future_year],
+    )
     description = models.TextField('описание', blank=True, default='')
     genre = models.ManyToManyField(Genre, through='GenreTitle')
     category = models.ForeignKey(

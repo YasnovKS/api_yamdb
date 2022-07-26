@@ -1,10 +1,9 @@
-import datetime
-
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 
 from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
+from reviews.validators import validate_not_future_year
 from users.models import User
 
 
@@ -74,6 +73,8 @@ class TitleSerializer(serializers.ModelSerializer):
         slug_field='slug', queryset=Category.objects.all()
     )
 
+    year = serializers.IntegerField(validators=[validate_not_future_year])
+
     class Meta:
         model = Title
         fields = (
@@ -91,15 +92,6 @@ class TitleSerializer(serializers.ModelSerializer):
                 message='Такое произведение уже существует в БД',
             )
         ]
-
-    def validate_year(self, value):
-        todays_year = datetime.date.today().year
-        if value > todays_year:
-            raise serializers.ValidationError(
-                f'Год выпуска {value} не может быть больше '
-                f'текущего {todays_year}'
-            )
-        return value
 
     def create(self, validated_data):
         genres = validated_data.pop('genre')
