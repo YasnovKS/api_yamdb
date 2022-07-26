@@ -1,7 +1,7 @@
 import datetime
 import uuid
 
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
@@ -152,22 +152,24 @@ class RegisterSerializer(serializers.Serializer):
         fields = ('username', 'email')
 
     def validate(self, data):
-        queryset = User.objects.all().values()
+        username = data.get('username')
+        email = data.get('email')
+        queryset = User.objects.filter(Q(username=username)
+                                       | Q(email=email)).values()
+        if not queryset:
+            confirmation_code = str(uuid.uuid4())
+            data['confirmation_code'] = confirmation_code
+            return data
         for object in queryset:
-            username = object['username']
-            email = object['email']
-            if username == data.get('username') and email == data.get('email'):
+            if object['username'] == username and object['email'] == email:
                 return data
-            if username == data.get('username'):
-                raise serializers.ValidationError('Пользователь с таким именем'
-                                                  ' уже существет.')
-            if email == data.get('email'):
+            if object['username'] == username:
+                raise serializers.ValidationError('Пользователь с таким '
+                                                  'именем уже существует.')
+            if object['email'] == email:
                 raise serializers.ValidationError('Пользователь с указанным '
                                                   'e-mail адресом уже '
                                                   'существует.')
-        confirmation_code = str(uuid.uuid4())
-        data['confirmation_code'] = confirmation_code
-        return data
 
     def validate_username(self, value):
         '''

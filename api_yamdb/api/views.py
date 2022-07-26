@@ -12,10 +12,10 @@ from rest_framework.permissions import (IsAuthenticated,
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from api_yamdb.settings import SERVICE_EMAIL
 from .filters import TitleFilter
 from .mixins import ListCreateDestroyViewSet
-from .permissions import (IsAdminPermission, AuthorPermission,
-                          IsAdminOrReadOnly)
+from .permissions import AuthorPermission, IsAdminOrReadOnly, IsAdminPermission
 from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ObtainTokenSerializer,
                           ReadOnlyTitleSerializer, RegisterSerializer,
@@ -39,7 +39,7 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         send_mail(
             'E-mail verification',
             f'Your confirmation_code is {confirmation_code}',
-            'register@yamdb.ru',
+            SERVICE_EMAIL,
             [email]
         )
 
@@ -49,9 +49,6 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         user = User.objects.get_or_create(**serializer.validated_data)
         self.send_email(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def perform_create(self, serializer):
-        pass
 
 
 class ObtainTokenView(views.APIView):
