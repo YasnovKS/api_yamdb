@@ -121,6 +121,9 @@ class TitleSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.Serializer):
+    '''
+    Serializer to register new users.
+    '''
     username = serializers.CharField(max_length=150,
                                      required=True
                                      )
@@ -133,7 +136,7 @@ class RegisterSerializer(serializers.Serializer):
 
     def validate_username(self, value):
         '''
-        Checking that user dont trying to create username "me".
+        Checking that user doesnt trying to create username "me".
         '''
         if value == "me":
             raise serializers.ValidationError('Вы не можете использовать "me" '
