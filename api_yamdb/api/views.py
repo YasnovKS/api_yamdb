@@ -4,38 +4,24 @@ from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import (
-    filters,
-    mixins,
-    permissions,
-    status,
-    views,
-    viewsets,
-)
+from rest_framework import (filters, mixins, permissions, status, views,
+                            viewsets)
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import (
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly,
-)
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from api_yamdb.settings import SERVICE_EMAIL
 from .filters import TitleFilter
 from .mixins import ListCreateDestroyViewSet
 from .permissions import AuthorPermission, IsAdminOrReadOnly, IsAdminPermission
-from .serializers import (
-    CategorySerializer,
-    CommentSerializer,
-    GenreSerializer,
-    ObtainTokenSerializer,
-    ReadOnlyTitleSerializer,
-    RegisterSerializer,
-    ReviewSerializer,
-    SelfProfileSerializer,
-    TitleSerializer,
-    UsersManageSerializer,
-)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          GenreSerializer, ObtainTokenSerializer,
+                          ReadOnlyTitleSerializer, RegisterSerializer,
+                          ReviewSerializer, SelfProfileSerializer,
+                          TitleSerializer, UsersManageSerializer)
 from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
@@ -49,38 +35,22 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
     serializer_class = RegisterSerializer
 
-    def create(self, request, *args, **kwargs):
-        #  User can get email with confirmation code after
-        #  entering valid username and email.
-        try:
-            user = User.objects.filter(
-                username=request.data['username'], email=request.data['email']
-            )[0]
-            send_mail(
-                'E-mail verification',
-                f'Your confirmation_code is {user.confirmation_code}',
-                'register@yamdb.ru',
-                [request.data['email']],
-            )
-            return Response(request.data, status=status.HTTP_200_OK)
-        except Exception:
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response(
-                serializer.data, status=status.HTTP_200_OK, headers=headers
-            )
-
-    def perform_create(self, serializer):
-        confirmation_code = str(uuid.uuid4())
-        serializer.save(confirmation_code=confirmation_code)
+    def send_email(self, user):
+        confirmation_code = user.confirmation_code
+        email = user.email
         send_mail(
             'E-mail verification',
             f'Your confirmation_code is {confirmation_code}',
-            'register@yamdb.ru',
-            [serializer.data['email']],
+            SERVICE_EMAIL,
+            [email]
         )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user, created = User.objects.get_or_create(**serializer.validated_data)
+        self.send_email(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ObtainTokenView(views.APIView):
