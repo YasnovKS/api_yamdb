@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 
-from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.validators import validate_not_future_year
 from users.models import User
 
@@ -95,32 +95,6 @@ class TitleSerializer(serializers.ModelSerializer):
                 message='Такое произведение уже существует в БД',
             )
         ]
-
-    def create(self, validated_data):
-        genres = validated_data.pop('genre')
-        title = Title.objects.create(**validated_data)
-        for genre in genres:
-            GenreTitle.objects.create(genre=genre, title=title)
-        return title
-
-    def update(self, instance, validated_data):
-        genres = (
-            validated_data.pop('genre') if 'genre' in validated_data else []
-        )
-
-        # setting new values to model instance
-        for fieldname, value in validated_data.items():
-            setattr(instance, fieldname, value)
-
-        # delete all current genres-title entries and add new ones
-        GenreTitle.objects.filter(title=instance).delete()
-        for genre in genres:
-            current_genre = Genre.objects.get(**genre)
-            GenreTitle.objects.create(genre=current_genre, title=instance)
-
-        # saving updates to db and return updated instance
-        instance.save()
-        return instance
 
 
 class RegisterSerializer(serializers.Serializer):
