@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import (filters, permissions, serializers, status,
+from rest_framework import (filters, mixins, permissions, serializers, status,
                             viewsets)
 from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
@@ -27,50 +27,49 @@ from reviews.models import Category, Genre, Review, Title
 from users.models import User
 
 
-def send_email(user):
+class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     '''
-    Function for sending email with confirmation_code to users.
-    '''
-    confirmation_code = user.confirmation_code
-    email = user.email
-    send_mail(
-        'E-mail verification',
-        f'Your confirmation_code is {confirmation_code}',
-        SERVICE_EMAIL,
-        [email]
-    )
-
-
-def generate_code():
-    '''
-    Function generates new confirmation_code for users.
-    '''
-    return str(uuid.uuid4())
-
-
-@api_view(['POST'])
-def signup(request):
-    '''
-    This view is intended to register new users. Also users can
+    This viewset is intended to register new users. Also users can
     get their confirmation code if registration was by person who had
     role "admin".
     '''
-    serializer = RegisterSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-    try:
-        user, created = (User.objects.
-                         get_or_create(**serializer.validated_data,
-                                       defaults={'confirmation_code':
-                                                 generate_code()
-                                                 }
-                                       )
-                         )
-    except IntegrityError as e:
-        field = str(e.__cause__).split('.')[1]
-        raise serializers.ValidationError(f'Пользователь с таким {field} '
-                                          'уже существует.')
-    send_email(user)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+
+    serializer_class = RegisterSerializer
+
+    def send_email(self, user):
+        confirmation_code = user.confirmation_code
+        email = user.email
+        send_mail(
+            'E-mail verification',
+            f'Your confirmation_code is {confirmation_code}',
+            SERVICE_EMAIL,
+            [email]
+        )
+
+    def generate_code(self):
+        return str(uuid.uuid4())
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = self.perform_create(serializer)
+        self.send_email(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def perform_create(self, serializer):
+        try:
+            user, created = (User.objects.
+                             get_or_create(**serializer.validated_data,
+                                           defaults={'confirmation_code':
+                                                     self.generate_code()
+                                                     }
+                                           )
+                             )
+            return user
+        except IntegrityError as e:
+            field = str(e.__cause__).split('.')[1]
+            raise serializers.ValidationError(f'Пользователь с таким {field} '
+                                              'уже существует.')
 
 
 @api_view(["POST"])
