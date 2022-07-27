@@ -2,7 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
 from .views import (CategoryViewSet, CommentViewSet, GenreViewSet,
-                    ObtainTokenView, RegisterViewSet, ReviewViewSet,
+                    obtain_token, RegisterViewSet, ReviewViewSet,
                     TitleViewSet, UsersManageViewSet)
 
 app_name = 'api'
@@ -27,5 +27,5 @@ router_v1.register(
 
 urlpatterns = [
     path('v1/', include(router_v1.urls), name='api'),
-    path('v1/auth/token/', ObtainTokenView.as_view(), name='token'),
+    path('v1/auth/token/', obtain_token, name='token'),
 ]

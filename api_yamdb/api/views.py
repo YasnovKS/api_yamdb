@@ -1,12 +1,13 @@
 import uuid
 
 from django.core.mail import send_mail
+from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import (filters, mixins, permissions, status, views,
+from rest_framework import (filters, mixins, permissions, serializers, status,
                             viewsets)
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
@@ -45,27 +46,44 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
             [email]
         )
 
+    def generate_code(self):
+        return str(uuid.uuid4())
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user, created = User.objects.get_or_create(**serializer.validated_data)
+        user = self.perform_create(serializer)
         self.send_email(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def perform_create(self, serializer):
+        try:
+            user, created = (User.objects.
+                             get_or_create(**serializer.validated_data,
+                                           defaults={'confirmation_code':
+                                                     self.generate_code()
+                                                     }
+                                           )
+                             )
+            return user
+        except IntegrityError as e:
+            field = str(e.__cause__).split('.')[1]
+            raise serializers.ValidationError(f'Пользователь с таким {field} '
+                                              'уже существует.')
 
-class ObtainTokenView(views.APIView):
+
+@api_view(["POST"])
+def obtain_token(request):
     '''
-    This is a viewset for obtaining token by entering user "username"
+    This is a view for obtaining token by entering user "username"
     and "confirmation code".
     '''
-
-    def post(self, request):
-        serializer = ObtainTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        username = serializer.data.get('username')
-        user = get_object_or_404(User, username=username)
-        token = RefreshToken.for_user(user).access_token
-        return Response({'token': str(token)}, status=status.HTTP_200_OK)
+    serializer = ObtainTokenSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    username = serializer.data.get('username')
+    user = get_object_or_404(User, username=username)
+    token = RefreshToken.for_user(user).access_token
+    return Response({'token': str(token)}, status=status.HTTP_200_OK)
 
 
 class UsersManageViewSet(viewsets.ModelViewSet):
@@ -85,7 +103,7 @@ class UsersManageViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated],
     )
     def me(self, request):
-        profile = User.objects.get(pk=request.user.id)
+        profile = get_object_or_404(User, pk=request.user.id)
         if request.method == "GET":
             serializer = SelfProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
