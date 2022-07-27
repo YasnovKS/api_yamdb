@@ -1,6 +1,7 @@
 import uuid
 
 from django.core.mail import send_mail
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import (filters, mixins, permissions, status, views,
@@ -31,11 +32,12 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     get their confirmation code if registration was by person who had
     role "admin".
     '''
+
     serializer_class = RegisterSerializer
 
     def send_email(self, user):
-        confirmation_code = user[0].confirmation_code
-        email = user[0].email
+        confirmation_code = user.confirmation_code
+        email = user.email
         send_mail(
             'E-mail verification',
             f'Your confirmation_code is {confirmation_code}',
@@ -46,7 +48,7 @@ class RegisterViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = User.objects.get_or_create(**serializer.validated_data)
+        user, created = User.objects.get_or_create(**serializer.validated_data)
         self.send_email(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -56,6 +58,7 @@ class ObtainTokenView(views.APIView):
     This is a viewset for obtaining token by entering user "username"
     and "confirmation code".
     '''
+
     def post(self, request):
         serializer = ObtainTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -76,50 +79,47 @@ class UsersManageViewSet(viewsets.ModelViewSet):
         confirmation_code = str(uuid.uuid4())
         serializer.save(confirmation_code=confirmation_code)
 
-    @action(methods=['get', 'patch'], detail=False,
-            permission_classes=[IsAuthenticated]
-            )
+    @action(
+        methods=['get', 'patch'],
+        detail=False,
+        permission_classes=[IsAuthenticated],
+    )
     def me(self, request):
         profile = User.objects.get(pk=request.user.id)
         if request.method == "GET":
             serializer = SelfProfileSerializer(profile)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        serializer = SelfProfileSerializer(request.user,
-                                           data=self.request.data,
-                                           partial=True)
+        serializer = SelfProfileSerializer(
+            request.user, data=self.request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
 
 
-class CategoryViewSet(ListCreateDestroyViewSet):
+class SlugNameViewSet(ListCreateDestroyViewSet):
+    lookup_field = 'slug'
+    permission_classes = (
+        IsAdminOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+    )
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('$name',)
+    pagination_class = PageNumberPagination
+
+
+class CategoryViewSet(SlugNameViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    lookup_field = 'slug'
-    permission_classes = (
-        IsAdminOrReadOnly,
-        permissions.IsAuthenticatedOrReadOnly,
-    )
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('$name',)
-    pagination_class = PageNumberPagination
 
 
-class GenreViewSet(ListCreateDestroyViewSet):
+class GenreViewSet(SlugNameViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    lookup_field = 'slug'
-    permission_classes = (
-        IsAdminOrReadOnly,
-        permissions.IsAuthenticatedOrReadOnly,
-    )
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('$name',)
-    pagination_class = PageNumberPagination
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
+    queryset = Title.objects.all().annotate(rating=Avg('reviews__score'))
     permission_classes = (
         IsAdminOrReadOnly,
         permissions.IsAuthenticatedOrReadOnly,
@@ -154,9 +154,17 @@ class CommentViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
-        review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id'),
+            title=self.kwargs.get('title_id')
+        )
         serializer.save(review=review, author=self.request.user)
 
     def get_queryset(self):
-        review = get_object_or_404(Review, pk=self.kwargs.get('review_id'))
+        review = get_object_or_404(
+            Review,
+            pk=self.kwargs.get('review_id'),
+            title=self.kwargs.get('title_id')
+        )
         return review.comments.all()

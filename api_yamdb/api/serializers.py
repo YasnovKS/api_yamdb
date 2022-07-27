@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 
 from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
+from reviews.validators import validate_not_future_year
 from users.models import User
 
 
@@ -51,7 +52,7 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class ReadOnlyTitleSerializer(serializers.ModelSerializer):
-    rating = serializers.SerializerMethodField()
+    rating = serializers.IntegerField()
     genre = GenreSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
 
@@ -67,16 +68,6 @@ class ReadOnlyTitleSerializer(serializers.ModelSerializer):
             'category',
         )
 
-    def get_rating(self, obj):
-        """
-        Retrieves average score from reviews.
-        avg aggregate returns float but per redoc, rating should be
-        an integer. Thus, it is converted to int.
-        """
-        avg_rating, *_ = obj.reviews.aggregate(Avg('score')).values()
-        rating = int(avg_rating) if avg_rating else None
-        return rating
-
 
 class TitleSerializer(serializers.ModelSerializer):
     genre = serializers.SlugRelatedField(
@@ -85,6 +76,8 @@ class TitleSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         slug_field='slug', queryset=Category.objects.all()
     )
+
+    year = serializers.IntegerField(validators=[validate_not_future_year])
 
     class Meta:
         model = Title
@@ -103,15 +96,6 @@ class TitleSerializer(serializers.ModelSerializer):
                 message='Такое произведение уже существует в БД',
             )
         ]
-
-    def validate_year(self, value):
-        todays_year = datetime.date.today().year
-        if value > todays_year:
-            raise serializers.ValidationError(
-                f'Год выпуска {value} не может быть больше '
-                f'текущего {todays_year}'
-            )
-        return value
 
     def create(self, validated_data):
         genres = validated_data.pop('genre')
@@ -218,26 +202,36 @@ class ObtainTokenSerializer(serializers.Serializer):
         '''
         user = get_object_or_404(User, username=data.get('username'))
         if data.get('confirmation_code') != user.confirmation_code:
-            raise serializers.ValidationError('Введен неверный'
-                                              ' проверочный код.'
-                                              )
+            raise serializers.ValidationError(
+                'Введен неверный' ' проверочный код.'
+            )
         return data
 
 
 class UsersManageSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name',
-                  'last_name', 'bio', 'role')
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+        )
 
 
 class SelfProfileSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name',
-                  'last_name', 'bio', 'role')
+        fields = (
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'bio',
+            'role',
+        )
         read_only_fields = ('role',)
 
 
