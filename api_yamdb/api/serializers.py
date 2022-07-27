@@ -1,7 +1,6 @@
-import datetime
 import uuid
 
-from django.db.models import Avg, Q
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
